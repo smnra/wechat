@@ -3,6 +3,7 @@ import datetime
 import ssh
 import wechat
 import os
+import fileAnilyaz
 
 now = datetime.datetime.now()   #获取当前时间
 #print("Today is %s." % now.strftime('%Y%m%d')) 
@@ -10,9 +11,24 @@ now = datetime.datetime.now()   #获取当前时间
 def mrServerStatus(host,serverName):        #参数为IP地址 和 mr服务器名称
     sshmr_1 = ssh.sshOpen()
     try:
-        ftpStr = sshmr_1.sshcon(host,22,'richuser','richr00t',"netstat -an|awk '{print $4}' | grep ':21$'")     #执行查看ftp端口是否打开
-        mrStr = sshmr_1.sshcon(host,22,'richuser','richr00t',"ps -ef|awk '{print $10,$9}' | grep l3fw")     #检查mr进程是否打开
-        mrNum = sshmr_1.sshcon(host,22,'richuser','richr00t',"ls l3fw_mr/kpi_import/" + now.strftime('%Y%m%d') + "| wc -w")     #统计mr基站数
+        ftpStr = sshmr_1.sshcon(host, 22, 'richuser', 'richr00t',
+                                "netstat -an|awk '{print $4}' | grep ':21$'")  # 执行查看ftp端口是否打开
+        mrStr = sshmr_1.sshcon(host, 22, 'richuser', 'richr00t',
+                               "ps -ef|awk '{print $10,$9}' | grep l3fw")  # 检查mr进程是否打开
+
+        # 服务器上执行将 mr文件路径列表 写入到文件中
+        sshmr_1.sshcon(host, 22, 'richuser', 'richr00t',
+                       "ls  l3fw_mr/kpi_import/" + now.strftime('%Y%m%d') + "/ -R >~/"+ serverName + "_filelist.txt")  # 统计mr基站数
+
+        # 从服务器 sftp 下载mr文件路径列表文件 到本地
+        ssh.remoteScp(host, 22, 'richuser', 'richr00t',
+                  tag_file=r'/home/richuser/'+ serverName +'_filelist.txt',
+                  local_file=r'./file/'+ serverName +'_filelist.txt')
+
+        mr = fileAnilyaz.MR(r'./file/'+ serverName +'_filelist.txt')
+        mrNum = mr.mrAnlyaz()
+
+
         traceNum = sshmr_1.sshcon(host,22,'richuser','richr00t',"ls l3fw_mr/import/" + now.strftime('%Y%m%d') + "| wc -w")      #统计trace基站数
         if ftpStr.find(':::21') == -1:
             ftpStatus = "Faild"
@@ -23,8 +39,8 @@ def mrServerStatus(host,serverName):        #参数为IP地址 和 mr服务器�
             mrStatus = "Faild"
         else:
             mrStatus = "OK"
-        print(serverName, ftpStatus, mrStatus, str(mrNum.strip()), str(traceNum.strip()))
-        return [serverName, ftpStatus, mrStatus, str(mrNum.strip()), str(traceNum.strip())]  # 函数返回一个mr服务器的以上状态的列表
+        print(serverName, ftpStatus, mrStatus, str(mrNum), str(traceNum.strip()))
+        return [serverName, ftpStatus, mrStatus, str(mrNum), str(traceNum.strip())]  # 函数返回一个mr服务器的以上状态的列表
 
     except Exception as e:
         print(serverName,e.__str__())

@@ -16,6 +16,13 @@ class sshOpen:
         self.ssh.close()
         return self.result.decode()
 
+def remoteScp(taghost, tagport=22, taguser='root', tagpassword='smnra000', tag_file=r'/home/richuser/MR_filelist.txt', local_file=r'./file/MR_filelist.txt'):
+    scp = paramiko.Transport((taghost, tagport))
+    scp.connect(username=taguser, password=tagpassword)
+    sftp = paramiko.SFTPClient.from_transport(scp)
+    sftp.get(tag_file, local_file)
+    scp.close()
+    return ("success")
 
 def sshOpenFunc(taghost,tagport = 22,taguser = 'root',tagpassword = 'smnra000',tagcmd = 'ls -l'):
     ssh = paramiko.SSHClient()  #创建SSH对象
@@ -29,6 +36,10 @@ def sshOpenFunc(taghost,tagport = 22,taguser = 'root',tagpassword = 'smnra000',t
     ssh.close()
     #print(result.decode())
     return result.decode()
-    
+
+
+
+
+
 if __name__ == '__main__':
     print(sshOpenFunc('10.100.162.115',22,'richuser','richr00t',"netstat -an|awk '{print $4}' | grep ':21$'"))
