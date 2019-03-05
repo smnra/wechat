@@ -49,11 +49,11 @@ class MR():
                 self.searchObj = re.search(r'FDD-LTE_MR[OSE]_NSN_OMC_(.+)_.+\.', line, re.M | re.I)
                 if self.searchObj:
                     if self.searchObj.group(1) not in self.siteList:
-                        self.siteList.append(self.searchObj.group(1))
+                        self.siteList.append(str(self.searchObj.group(1)))
 
         self.mrFileSiteCount = len(self.siteList)
         print(self.siteList)
-        return len(self.siteList)
+        return self.siteList
 
     def getMrSiteCount(self):
         hasMRFileSiteCount = self.mrAnlyaz()

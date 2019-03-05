@@ -10,6 +10,28 @@ now = datetime.datetime.now()   #获取当前时间
 
 def mrServerStatus(host,serverName):        #参数为IP地址 和 mr服务器名称
     sshmr_1 = ssh.sshOpen()
+
+    pathTime = now.strftime('%Y%m%d')
+    filePath = r'./file/' + now.strftime('%Y%m%d') + r'/'
+
+    # 远程 MR 服务器上 MR数据文件保存路径
+    mrDirRemote = r'l3fw_mr/kpi_import/' + now.strftime('%Y%m%d')
+
+    # 保存 MR文件名列表的文件路径 在远程MR服务器上
+    mrFileNameRemote = r'/home/richuser/' + serverName + '_filelist.txt'
+
+    # 保存 MR文件名列表的文件路径 在本地电脑上
+    mrFileNameLocal =  filePath + serverName + '_filelist.txt'
+
+    # 保存 采集到MR数据的基站列表文件
+    siteListFileNameLocal = filePath + serverName + '_sitelist.csv'
+
+    if os.path.exists(filePath):  # 判断路径是否存在
+        print(u"目标已存在:", filePath)  # 如果存在 打印路径已存在,
+    else:
+        os.makedirs(filePath)  # 如果不存在 创建目录
+
+
     try:
         ftpStr = sshmr_1.sshcon(host, 22, 'richuser', 'richr00t',
                                 "netstat -an|awk '{print $4}' | grep ':21$'")  # 执行查看ftp端口是否打开
@@ -18,15 +40,26 @@ def mrServerStatus(host,serverName):        #参数为IP地址 和 mr服务器�
 
         # 服务器上执行将 mr文件路径列表 写入到文件中
         sshmr_1.sshcon(host, 22, 'richuser', 'richr00t',
-                       "ls  l3fw_mr/kpi_import/" + now.strftime('%Y%m%d') + "/ -R >~/"+ serverName + "_filelist.txt")  # 统计mr基站数
+                       "ls " + mrDirRemote + "/ -R >~/"+ serverName + "_filelist.txt")  # 统计mr基站数
 
         # 从服务器 sftp 下载mr文件路径列表文件 到本地
         ssh.remoteScp(host, 22, 'richuser', 'richr00t',
-                  tag_file=r'/home/richuser/'+ serverName +'_filelist.txt',
-                  local_file=r'./file/'+ serverName +'_filelist.txt')
+                  tag_file=mrFileNameRemote,
+                  local_file=mrFileNameLocal)
 
-        mr = fileAnilyaz.MR(r'./file/'+ serverName +'_filelist.txt')
-        mrNum = mr.mrAnlyaz()
+        mr = fileAnilyaz.MR(mrFileNameLocal)
+
+        #  获取有MR文件的基站列表
+        mrSiteList = mr.mrAnlyaz()
+
+
+
+        # 将列表写入文件
+        with open(siteListFileNameLocal, mode='w', encoding='gbk', errors='ignore') as f:
+            f.write("\n".join(mrSiteList))
+
+        # 统计基站数
+        mrNum = len(mrSiteList)
 
 
         traceNum = sshmr_1.sshcon(host,22,'richuser','richr00t',"ls l3fw_mr/import/" + now.strftime('%Y%m%d') + "| wc -w")      #统计trace基站数
