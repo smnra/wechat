@@ -10,7 +10,10 @@ def get_token():
   values = {'corpid' : 'ww6c9dd7fa7f100584' ,
       'corpsecret':'YR2bz9qMKbtOZx3cgujdqlv3eblvRytTozknXSZ9aJM',
        }
-  req = requests.post(url, params=values, proxies={'http': '10.22.0.238:3128','https': '10.22.0.238:3128'})   #proxies为设置 代理服务器
+  # req = requests.post(url, params=values, proxies={'http': '10.22.0.238:3128','https': '10.22.0.238:3128'})   #proxies为设置 代理服务器
+  req = requests.post(url, params=values)   #不设置代理服务器
+
+
   data = json.loads(req.text)
   #print(data)
   return data['access_token']
@@ -31,7 +34,9 @@ def send_msg(wechatmsg):
   #print(url)
   
   data = json.loads(values) 
-  req = requests.post(url, values,proxies={'http': '10.22.0.238:3128','https': '10.22.0.238:3128'})      #proxies为设置 代理服务器
+  # req = requests.post(url, values,proxies={'http': '10.22.0.238:3128','https': '10.22.0.238:3128'})      #proxies为设置 代理服务器
+  req = requests.post(url, values)      #不设置代理服务器
+
   #print(req)
  
 if __name__ == '__main__':

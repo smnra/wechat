@@ -121,7 +121,7 @@ def getServerStatus():
     file.write(title + '\n'+ message_wx0 + '\n' +  '\n'.join(mrs))
     file.flush()
     file.close()
-    print(title + '\n'+ message_wx0 + '\n'.join(mrs))
+    print(title + '\n'+ message_wx0 + '\n'+  '\n'.join(mrs))
     return title + message_wx0 + ''.join(mrs)
 
 
