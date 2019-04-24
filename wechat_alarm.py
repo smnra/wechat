@@ -3,7 +3,7 @@ import datetime
 import ssh
 import wechat
 import os
-import fileAnilyaz
+import fileAnilyaz,sshTiaoban
 
 now = datetime.datetime.now()   #获取当前时间
 #print("Today is %s." % now.strftime('%Y%m%d')) 
@@ -26,6 +26,9 @@ def mrServerStatus(host,serverName):        #参数为IP地址 和 mr服务器�
     # 保存 采集到MR数据的基站列表文件
     siteListFileNameLocal = filePath + serverName + '_sitelist.csv'
 
+    # 保存 所有基站 MR服务器 列表文件
+    allSiteFileNameLocal = filePath +  'allSiteList.csv'
+
     if os.path.exists(filePath):  # 判断路径是否存在
         print(u"目标已存在:", filePath)  # 如果存在 打印路径已存在,
     else:
@@ -39,6 +42,7 @@ def mrServerStatus(host,serverName):        #参数为IP地址 和 mr服务器�
                                "ps -ef|awk '{print $10,$9}' | grep l3fw")  # 检查mr进程是否打开
 
         # 服务器上执行将 mr文件路径列表 写入到文件中
+        print("ls " + mrDirRemote + "/ -R >~/"+ serverName + "_filelist.txt")
         sshmr_1.sshcon(host, 22, 'richuser', 'richr00t',
                        "ls " + mrDirRemote + "/ -R >~/"+ serverName + "_filelist.txt")  # 统计mr基站数
 
@@ -47,17 +51,21 @@ def mrServerStatus(host,serverName):        #参数为IP地址 和 mr服务器�
                   tag_file=mrFileNameRemote,
                   local_file=mrFileNameLocal)
 
+        # 实例化类 fileAnilyaz.MR
         mr = fileAnilyaz.MR(mrFileNameLocal)
 
         #  获取有MR文件的基站列表
         mrSiteList = mr.mrAnlyaz()
 
 
-
         # 将列表写入文件
         with open(siteListFileNameLocal, mode='w', encoding='gbk', errors='ignore') as f:
             f.write("\n".join(mrSiteList))
 
+        #  将列表写入一个文件
+        with open(allSiteFileNameLocal, mode='a+', encoding='gbk', errors='ignore') as f:
+            f.write(("," + serverName + "\n").join(mrSiteList))
+            f.write("," + serverName + "\n")
         # 统计基站数
         mrNum = len(mrSiteList)
 
@@ -97,7 +105,59 @@ def trimStatus(mr):
         return mr + '\\n'
 
 
+def mrTiaoBan(host,serverName):
+    filePath = r'./file/' + now.strftime('%Y%m%d') + r'/'
+
+    # 保存 MR文件名列表的文件路径 在本地电脑上
+    mrFileNameLocal =  filePath + serverName + '_filelist.txt'
+
+    # 保存 采集到MR数据的基站列表文件
+    siteListFileNameLocal = filePath + serverName + '_sitelist.csv'
+
+    # 保存 所有基站 MR服务器 列表文件
+    allSiteFileNameLocal = filePath +  'allSiteList.csv'
+
+    if os.path.exists(filePath):  # 判断路径是否存在
+        print(u"目标已存在:", filePath)  # 如果存在 打印路径已存在,
+    else:
+        os.makedirs(filePath)  # 如果不存在 创建目录
+
+    # 通过跳板机 获取 mr文件名列表 保存到 mrFileList
+    mrFileList = sshTiaoban.sshTiaoban("10.100.162.117", "richuser", "richr00t", host, "richuser", "richr00t",
+                                     r'ls -R ~/l3fw_mr/kpi_import/'+ now.strftime('%Y%m%d'))
+    # 把mr文件名列表 保存到txt文件
+    with open(mrFileNameLocal, mode='w', encoding='gbk', errors='ignore') as f:
+        f.write(mrFileList)
+
+    # 实例化类 fileAnilyaz.MR
+    mr = fileAnilyaz.MR(mrFileNameLocal)
+
+    #  获取有MR文件的基站列表
+    mrSiteList = mr.mrAnlyaz()
+
+
+    # 将列表写入文件
+    with open(siteListFileNameLocal, mode='w', encoding='gbk', errors='ignore') as f:
+        f.write("\n".join(mrSiteList))
+
+    #  将列表写入一个文件
+    with open(allSiteFileNameLocal, mode='a+', encoding='gbk', errors='ignore') as f:
+        f.write(("," + serverName + "\n").join(mrSiteList))
+        f.write("," + serverName + "\n")
+
+    # 统计基站数
+    mrNum = len(mrSiteList)
+
+    print(serverName, 'NA', 'NA', str(mrNum), 'NA')
+    return [serverName, 'NA', 'NA', str(mrNum), 'NA']  # 函数返回一个mr服务器的以上状态的列表
+
+
 def getServerStatus():
+    # 删除已存在的全部基站列表文件
+    allSiteFileNameLocal = r'./file/' + now.strftime('%Y%m%d') + r'/' + 'allSiteList.csv'
+    if os.path.isfile(allSiteFileNameLocal):
+        os.remove(allSiteFileNameLocal)
+
     mr1 = mrServerStatus("10.100.162.112","MR_1")
     mr2 = mrServerStatus("10.100.162.111","MR_2")
     mr3 = mrServerStatus("10.100.162.110","MR_3")
@@ -107,9 +167,14 @@ def getServerStatus():
     mr7 = mrServerStatus("10.100.162.117","MR_7")
     mr8 = mrServerStatus("10.100.162.119","MR_8")
     mr9 = mrServerStatus("10.100.162.120","MR_9")
-    mrs = [mr1, mr2, mr3, mr4, mr5, mr6, mr7, mr8, mr9]
+    mr10 = mrTiaoBan("10.100.162.131","MR_10")
+    mr11 = mrTiaoBan("10.100.162.133","MR_11")
+    mr12 = mrTiaoBan("10.100.162.135","MR_12")
+    mr13 = mrTiaoBan("10.100.162.137","MR_13")
 
-    title = ("%s MR Server Status:\\n" % now.strftime('%Y-%m-%d'))
+    mrs = [mr1, mr2, mr3, mr4, mr5, mr6, mr7, mr8, mr9, mr10, mr11, mr12, mr13]
+
+    title = ("%s MR Server Status:\\n" % now.strftime('%Y_%m_%d_%H_%M_%S'))
     message_wx0 = "Server FTP  MR   eNodeB Trace\\n"
     mrs = [trimStatus(mr) for mr in mrs]
 
